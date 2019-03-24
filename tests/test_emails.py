@@ -9,7 +9,7 @@ from aws_toolbox.emails.email_sender import EmailSender
 
 @mock_ses
 def test_email_send_single():
-    FROM = 'SOM@GMAIL.COM'
+    FROM = 'SOM@uhkkMAIL.COM'
     conn = boto3.client('ses')
     conn.verify_email_identity(EmailAddress=FROM)
     es = EmailSender(from_address=FROM)
@@ -25,7 +25,7 @@ def test_email_send_single():
 
 @mock_ses
 def test_email_send_comma_seperated():
-    FROM = 'SOM@GMAIL.COM'
+    FROM = 'SOM@GMfdafAIL.COM'
     conn = boto3.client('ses')
     conn.verify_email_identity(EmailAddress=FROM)
     es = EmailSender(from_address=FROM)
@@ -41,7 +41,7 @@ def test_email_send_comma_seperated():
 
 @mock_ses
 def test_email_send_list():
-    FROM = 'SOM@GMAIL.COM'
+    FROM = 'SOM@GMAfadsIL.COM'
     conn = boto3.client('ses')
     conn.verify_email_identity(EmailAddress=FROM)
     es = EmailSender(from_address=FROM)
