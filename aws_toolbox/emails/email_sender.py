@@ -5,11 +5,11 @@ import boto3
 
 class EmailSender():
 
-    def __init__(from_address, session=None):
+    def __init__(self, from_address, session=None):
         self._from_address = from_address
         self._client = boto3.client('ses')
 
-    def send_email(to_address, subject, message, html=False):
+    def send_email(self, to_address, subject, message, html=False):
 
         # type checking
         if isinstance(to_address, str):
@@ -26,7 +26,7 @@ class EmailSender():
         else:
             raise ValueError()
 
-        self.client.send_email(
+        res = self._client.send_email(
             Source=self._from_address,
             Destination={
                 'ToAddresses': addresses_to_pass,
@@ -36,7 +36,7 @@ class EmailSender():
             Message={
                 'Subject': {
                     'Data': subject,
-                    'Charset' 'utf-8'
+                    'Charset': 'utf-8'
                 },
                 'Body': {
                     'Text': {
@@ -51,3 +51,5 @@ class EmailSender():
                 }
             }
         )
+
+        return res
