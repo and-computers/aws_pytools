@@ -7,7 +7,7 @@ class EmailSender():
 
     def __init__(self, from_address, session=None):
         self._from_address = from_address
-        self._client = boto3.client('ses')
+        self._client = boto3.client('ses', region_name='us-east-1')
 
     def send_email(self, to_address, subject, message, html=False):
 
