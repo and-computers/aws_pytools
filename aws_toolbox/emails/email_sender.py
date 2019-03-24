@@ -45,7 +45,7 @@ class EmailSender():
                     },
                     # TODO: check if you can have both
                     'Html': {
-                        'Data': '',
+                        'Data': message,
                         'Charset': 'utf-8'
                     }
                 }
