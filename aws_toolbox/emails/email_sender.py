@@ -9,7 +9,7 @@ class EmailSender():
         self._from_address = from_address
         self._client = boto3.client('ses', region_name='us-east-1')
 
-    def send_email(self, to_address, subject, message, html=False):
+    def send_email(self, to_address, subject, message):
 
         # type checking
         if isinstance(to_address, str):
