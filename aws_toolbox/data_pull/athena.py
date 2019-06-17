@@ -19,3 +19,5 @@ class AthenaQueryEngine():
         while status != ATHENA_SUCCESS:
             status = self._get_status()
         return []
+    def get_status(self):
+        pass
