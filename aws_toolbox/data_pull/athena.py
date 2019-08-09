@@ -28,6 +28,7 @@ class AthenaQueryEngine():
 
         self.fs = s3fs.S3FileSystem()
         self.max_retries = 5
+        self.current_attempt = 1
 
     def _get_status(self, q_id)->str:
         result = self._client.get_query_execution(QueryExecutionId=q_id)
@@ -62,17 +63,19 @@ class AthenaQueryEngine():
 
         while status != ATHENA_SUCCESS:
 
-            status = self._get_status(q_id)
+            status, failure_reason = self._get_status(q_id)
 
             if status == ATHENA_FAILED:
                 if self.current_attempt < self.max_retries:
                     self.current_attempt += 1
                     self.execute_query(query)
                 else:
-                    return
+                    self.current_attempt = 1
+                    return []
 
         data = self._retrieve_query_result(q_id)
 
+        self.current_attempt = 1
         return []
 if __name__ == "__main__":
     import pdb
