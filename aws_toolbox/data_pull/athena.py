@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
+import csv
 import logging
-from typing import List
+from typing import List, Dict
 
 import boto3
 from botocore.exceptions import ClientError
 import s3fs
 
-ATHENA_SUCCESS = 'SUCCESS'
+ATHENA_SUCCESS = 'SUCCEEDED'
 ATHENA_FAILED = 'FAILED'
 
 
@@ -16,28 +17,31 @@ class AthenaQueryEngine():
                  database: str,
                  quotechar="`",
                  output_location=None,
-                 region='us-east-1'
+                 region='us-east-1',
+                 max_attempts=3
                  ) -> None:
+
         self._client = boto3.client('athena', region_name=region)
         self.db_name = database
 
         if not output_location:
-            self.output_location = f's3://{self.db_name}/tmp/'
+            self.output_location = f's3://{self.db_name}/tmp'
         else:
             self.output_location = output_location
+        if self.output_location.endswith('/'):
+            print(f"Removing trailing slash from {self.output_location}")
+            self.output_location = self.output_location[:-1]
 
         self.fs = s3fs.S3FileSystem()
-        self.max_retries = 5
+        self.max_attempts = max_attempts
         self.current_attempt = 1
+        self.q_id = ''
 
     def _get_status(self, q_id)->str:
         result = self._client.get_query_execution(QueryExecutionId=q_id)
         query_state = result['QueryExecution']['Status']['State']
         failure_reason = None
-        import pdb
         if query_state == ATHENA_FAILED:
-            print(result)
-            pdb.set_trace()
             failure_reason = result['QueryExecution']['Status']['StateChangeReason']
 
         return query_state, failure_reason
@@ -49,9 +53,8 @@ class AthenaQueryEngine():
             rows = [row for row in reader]
         return rows
 
-    def execute_query(self, query: str) -> List:
+    def _execute_query(self, query) -> Dict:
 
-        status = None
         query_resp = self._client.start_query_execution(QueryString=query,
                                                         QueryExecutionContext={
                                                             'Database': self.db_name
@@ -59,30 +62,38 @@ class AthenaQueryEngine():
                                                         ResultConfiguration={
                                                             'OutputLocation': f'{self.output_location}'
                                                         })
-        q_id = query_resp['QueryExecutionId']
+
+        return query_resp
+
+    def execute_query(self, query: str) -> List:
+
+        status = None
+
+        query_resp = self._execute_query(query)
+
+        self.q_id = query_resp['QueryExecutionId']
 
         while status != ATHENA_SUCCESS:
 
-            status, failure_reason = self._get_status(q_id)
+            status, failure_reason = self._get_status(self.q_id)
 
             if status == ATHENA_FAILED:
-                if self.current_attempt < self.max_retries:
+                if self.current_attempt < self.max_attempts:
                     self.current_attempt += 1
-                    self.execute_query(query)
+                    self._execute_query(query)
                 else:
-                    self.current_attempt = 1
+                    print(f"Failed: {failure_reason}")
                     return []
 
-        data = self._retrieve_query_result(q_id)
+        data = self._retrieve_query_result(self.q_id)
 
         self.current_attempt = 1
-        return []
+        return data
 if __name__ == "__main__":
-    import pdb
-    pdb.set_trace()
-    z = AthenaQueryEngine(database="asodara-data-store",
-                          output_location="s3://asodara-data-store/tmp/",
-                          region="us-east-2")
-    ROWS = z.execute_query("SELECT * FROM asoara WHERE person='OT'")
+
+    z = AthenaQueryEngine(database="sampledb",
+                          output_location="s3://athena-examples-us-east-2/elb/tmp/",
+                          region="us-east-2",
+                          max_attempts=5)
+    ROWS = z.execute_query("SELECT * FROM elb_logs LIMIT 10")
     print(ROWS)
-    pdb.set_trace()
